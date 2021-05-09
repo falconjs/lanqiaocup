@@ -63,6 +63,6 @@ for num, exam in enumerate(examination):
     time.sleep(1)
 
 print()
-print("测试结束，正在计算得分，请稍等……")
+print("测试结束，正在计算得分，请稍等......")
 time.sleep(2)
 print("此次测验您的总分是：" + str(score))
