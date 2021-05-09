@@ -8,3 +8,6 @@ third = "c"
 
 for i in [first, second, third]:
     print(i)
+
+for num, i in enumerate([first, second, third]):
+    print(num, i)
