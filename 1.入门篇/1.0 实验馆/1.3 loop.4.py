@@ -23,4 +23,4 @@ while someInput != '3':
 
 print("10. --- end of loop --- ")
 print("11. someInput = " + str(someInput))
-
+print()
