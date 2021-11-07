@@ -134,6 +134,7 @@ dmypy.json
 /input/
 
 # Visual Code
+**/.vscode
 
 # Mac
 **/.DS_Store
