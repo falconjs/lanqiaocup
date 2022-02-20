@@ -19,9 +19,9 @@ if 's' in myletters:
 # The index of a is 1
 # ...
 
-index = 0
+idx = 0
 for letter in myletters:
     print(letter)
     # print("The index of" ,letter ,'is' , myletters.index(letter))
-    print("The index of" ,letter ,'is' , index)
-    index = index + 1
+    print("The index of" ,letter ,'is' , idx)
+    idx = idx + 1
