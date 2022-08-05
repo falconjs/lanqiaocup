@@ -133,4 +133,13 @@ dmypy.json
 .idea/*.*
 /input/
 
+# Visual Code
+**/.vscode
+
+# Mac
+**/.DS_Store
+
+# fluidsynth
+fluidsynth/
+
 # END
