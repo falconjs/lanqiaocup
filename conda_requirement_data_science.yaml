@@ -1,0 +1,34 @@
+name: datascience_py39
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+# basic
+  - python=3.9
+  - pip
+  - boto3
+  - jupyter
+  # - jupyterlab
+  - matplotlib
+  - nodejs
+  - numpy=1.22
+  - pandas=1.4
+  - scikit-learn=1.1
+  - seaborn
+  - statsmodels
+# data science
+  - xgboost
+  - lightgbm
+  - shap
+  - scikit-optimize
+  - plotly
+  - sshtunnel
+# kaggle
+  - kaggle
+  # - dtw-python
+  # - pmdarima
+  # - openpyxl
+  # - bioconda::bioinfokit
+  # - h2oai::h2o
+  # - pip:
+  #   - pycausalimpact
