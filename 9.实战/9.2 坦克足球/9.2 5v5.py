@@ -8,6 +8,9 @@ run_direct = {"tank1": 1, "tank2": 1, "tank3": 1, "tank4": 1, "tank5": 1}
 
 
 def is_in_selectside(sprite, side):
+    """
+    物体是否在某边
+    """
     if side == "ENEMY":
         if (sprite.x * opt.ENEMY_DOOR_LEFT.x) >= 0:
             return True
@@ -19,6 +22,9 @@ def is_in_selectside(sprite, side):
     
 
 def is_run_toward_selectside(sprite, side, speed):
+    """
+    判断是否快速跑向某边
+    """
     if side == "ENEMY":
         # 有一定的速度跑向
         if abs(sprite.vx) > speed and (sprite.vx * opt.ENEMY_DOOR_LEFT.x) >= 0:
@@ -32,24 +38,23 @@ def is_run_toward_selectside(sprite, side, speed):
 
 # last_pos = opt.Pos(255, 255)
 def get_speed(sprite):
-    """ 
+    """
     利用物体的vx，vy，计算v的量
     两直角边计算斜边
     """
     return math.sqrt(sprite.vx ** 2 + sprite.vy ** 2)
 
-
 def is_stuck(me, speed, tankname):
     global stuck_count
     stuck_duration = -30
-    if me.is_stuck(speed): # 卡住了 系统函数
+    if me.is_stuck(speed): # 卡住了
         stuck_count[tankname] = stuck_duration
         return True
     if stuck_count[tankname] < 0 : # 卡住中，倒计时
         stuck_count[tankname] = stuck_count[tankname] + 1
         return True
     else:
-        if get_speed(me) < speed: # 卡了 ， 连续卡 20帧，就是卡住了
+        if get_speed(me) < speed: # 卡了, 连续卡 20帧，就是卡住了
             stuck_count[tankname] = stuck_count[tankname] + 1 
         elif get_speed(me) >= 2 : # 有点动了
             stuck_count[tankname] = 0
@@ -58,8 +63,10 @@ def is_stuck(me, speed, tankname):
         return True
     return False
 
-
 def get_line_direct_to_pos_onside(k, b, direct):
+    """
+    k 斜率，b 截距，direct 计算方向
+    """
     print(f"k = {k}, b = {b}, direct = {direct}")
     if k == 0:
         print(f"Error : K == 0")
@@ -99,13 +106,13 @@ def get_s2s_to_pos_onside(sp1, sp2, rebound):
             if abs(pos.x) == 50:
                 direct = -direct
             pos = get_line_direct_to_pos_onside(k, b, direct)
-
     elif (sp2.y - sp1.y) == 0:
         # 水平线，不可使用上面公式
         if (sp2.x - sp1.x) > 0:
             pos = opt.Pos(sp2.x, 25)
         elif (sp2.x - sp1.x) < 0:
             pos = opt.Pos(sp2.x, -25)
+       
         if rebound == 1:
             pos = None
    
@@ -115,9 +122,9 @@ def get_s2s_to_pos_onside(sp1, sp2, rebound):
             pos = opt.Pos(sp2.x, 25)
         elif (sp2.y - sp1.y) < 0:
             pos = opt.Pos(sp2.x, -25)
+        
         if rebound == 1:
             pos = None
-
     if pos is None:
         print(f"get_s2s_to_pos_onside: pos = None")
     else :
@@ -144,13 +151,13 @@ def get_angle_to_pos(sprite, pos):
 
 def get_angle_to(sprite, posx, posy):
     """
-    获取sprite朝向与目标坐标的夹角：（左侧）180到-180 (右侧)
+    获取sprite朝向与目标坐标的夹角：（左侧）-180到180 (右侧)
     """
     angle_s = sprite.angle_to(posx, posy)
     if 0 <= angle_s <= 180:
-        angle = angle_s
+        angle = -angle_s
     elif 180 < angle_s <= 360:
-        angle = (angle_s - 360)
+        angle = -(angle_s - 360)
     else:
         angle = 9999 # This is error
     return angle
@@ -219,17 +226,17 @@ def get_position_face_target_keep_distance(src_sprite, target_pos, keep_distance
     posy = src_sprite.y - keep_distance * (target_pos.y - src_sprite.y) / distance_to_target
     return opt.Pos(posx, posy)
 
-def get_position_beside(me, target_pos, keep_distance):
+def get_position_beside(me, src_sprite, keep_distance):
     # 要跑过头
     if opt.ENEMY_DOOR_RIGHT.x > 0:
-        posx = target_pos.x - 5
+        posx = src_sprite.x - 5
     else:
-        posx = target_pos.x + 5
+        posx = src_sprite.x + 5
     #
-    if target_pos.y > me.y :
-        posy = target_pos.y - keep_distance 
+    if src_sprite.y > me.y :
+        posy = src_sprite.y - keep_distance 
     else:
-        posy = target_pos.y + keep_distance
+        posy = src_sprite.y + keep_distance
     return opt.Pos(posx, posy)
 
 def get_position(me, src_sprite, target_pos, keep_distance):
@@ -240,7 +247,7 @@ def get_position(me, src_sprite, target_pos, keep_distance):
     else:
         pos = src_sprite
 
-    pos = opt.Pos(max(min(pos.x, 50),-50), max(min(pos.y, 25),-25)) # 不能超出范围
+    pos = opt.Pos(max(min(pos.x, 50),-50), max(min(pos.y, 25),-25))
     return pos
 
 def generate_hs(angle, rundirect):
@@ -254,13 +261,13 @@ def generate_hs(angle, rundirect):
     if 0 <= abs_angle <= 1 :
         hs = 0
     elif 1 < abs_angle <= 10 :
-        hs = -0.1
+        hs = 0.1
     elif 10 < abs_angle <= 20 :
-        hs = -0.3
+        hs = 0.3
     elif 20 < abs_angle <= 30 :
-        hs = -0.5
+        hs = 0.5
     elif 30 < abs_angle :
-        hs = -1
+        hs = 1
     else :
         hs = 0
 
@@ -308,7 +315,7 @@ def generate_vs(hs, distance, angle, rundirect):
 #     return closest_tank, closest_distance
 
 
-def get_vshs_run_to_pos(tank, posx, posy, keep_distance, tankname):
+def run_to_pos(tank, posx, posy, keep_distance, tankname):
     global run_direct
 
     angle = get_angle_to(tank, posx, posy)
@@ -331,7 +338,7 @@ def get_vshs_run_to_pos(tank, posx, posy, keep_distance, tankname):
     
     return vs, hs
 
-def get_vshs_adjust_to_target(me, pos, target, vs, hs, tankname):
+def adjust_to_target(me, pos, target, vs, hs, tankname):
     dist_pos = get_distance_to_pos(me, pos, 0)
     angle_pos = get_angle_to_pos(me, pos)
     pos_onside = get_s2s_to_pos_onside(me, pos, 0)
@@ -441,9 +448,9 @@ def tank_fire(tank):
         print(f"缺弹药")
     return False
 
-def get_vshs_response_to_stuck(vs, hs, me, tankname):
+def check_response_to_stuck(vs, hs, me, speed, tankname):
     global run_direct
-    if is_stuck(me, 1, tankname) : # is_stuck 的倒计时机制（30帧，一秒80帧），可以保证倒退一定时间
+    if is_stuck(me, speed, tankname) :
         if run_direct[tankname] == 1:
             vs, hs = -1, 0
         elif run_direct[tankname] == -1:
@@ -451,9 +458,6 @@ def get_vshs_response_to_stuck(vs, hs, me, tankname):
     return vs, hs
 
 def get_vshs_shot(me, ball, target, tankname):
-    """
-
-    """
     print(f"----get_vshs_shot----")
     distance_to_ball = get_distance_to(me, ball.x, ball.y, 0)
     print(f"target = ({target.x}, {target.y})")
@@ -480,9 +484,9 @@ def get_vshs_shot(me, ball, target, tankname):
  
     posx, posy = to_pos.x, to_pos.y
     print(f"to_pos = ({to_pos.x} , {to_pos.y})")
-    vs, hs = get_vshs_run_to_pos(me, posx, posy, 0, tankname)
+    vs, hs = run_to_pos(me, posx, posy, 0, tankname)
     
-    vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
+    vs, hs = check_response_to_stuck(vs, hs, me, 1, tankname)
     
     return vs, hs
 
@@ -514,13 +518,13 @@ def get_vshs_run(me, ball, target, tankname):
     print(f"to_pos = ({to_pos.x} , {to_pos.y})")
 
     # 跑向目标点
-    vs, hs = get_vshs_run_to_pos(me, posx, posy, 0, tankname)
+    vs, hs = run_to_pos(me, posx, posy, 0, tankname)
 
     # 控球情况下，往门里带球
     pos = opt.Pos(posx, posy)
-    vs, hs = get_vshs_adjust_to_target(me, pos, target, vs, hs, tankname)
+    vs, hs = adjust_to_target(me, pos, target, vs, hs, tankname)
     
-    vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
+    vs, hs = check_response_to_stuck(vs, hs, me, 1, tankname)
 
     return vs, hs
 
@@ -547,9 +551,9 @@ def get_vshs_keeper1(me, ball, tankname):
 
     # 后场防御线
 
-    vs, hs = get_vshs_run_to_pos(me, pos.x, pos.y, 0, tankname) # 修改减速可以停到位子
+    vs, hs = run_to_pos(me, pos.x, pos.y, 0, tankname) # 修改减速可以停到位子
    
-    vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
+    vs, hs = check_response_to_stuck(vs, hs, me, 0.2, tankname)
     
     return vs, hs
 
@@ -761,10 +765,45 @@ def tank2_update():
 
     return vs, hs
 
-
-# 控制你球门的3号机器人
+# 控制你的 3 号机器人
 def tank3_update():
     tankname = "tank3"
+    print_start(tankname)
+
+    me = opt.TANK
+    ball = opt.BALL
+    target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
+    
+    print_status(me, ball, tankname)
+    
+    vs, hs = keeper1(me, ball, tankname)
+    # vs, hs = keeper2(me, target, tankname)
+   
+    print_end(me, vs, hs, tankname)
+
+    return vs, hs
+
+# 控制你的 4 号机器人
+def tank4_update():
+    tankname = "tank4"
+    print_start(tankname)
+
+    me = opt.TANK
+    ball = opt.BALL
+    target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
+    
+    print_status(me, ball, tankname)
+    
+    vs, hs = attack(me, target, tankname)
+    
+    print_end(me, vs, hs, tankname)
+
+    return vs, hs
+
+
+# 控制你球门的5号机器人
+def tank5_update():
+    tankname = "tank5"
     print_start(tankname)
     
     me = opt.TANK
