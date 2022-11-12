@@ -3,6 +3,10 @@ import math
 
 # last_pos = opt.Pos(255, 255)
 def get_speed(sprite):
+    """ 
+    利用物体的vx，vy，计算v
+    两直角边计算斜边
+    """
     return math.sqrt(sprite.vx ** 2 + sprite.vy ** 2)
 
 stuck_count = {"tank1": 0, "tank2": 0}
@@ -625,3 +629,4 @@ def tank2_update():
     print(f"======在帧={opt.time_step()}, {tankname}输出了 vs={vs}, hs={hs}, run_direct={run_direct[tankname]}")
     
     return vs, hs
+
