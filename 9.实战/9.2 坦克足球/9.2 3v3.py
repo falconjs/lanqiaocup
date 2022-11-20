@@ -7,6 +7,16 @@ stuck_count = {"tank1": 0, "tank2": 0, "tank3": 0, "tank4": 0, "tank5": 0}
 run_direct = {"tank1": 1, "tank2": 1, "tank3": 1, "tank4": 1, "tank5": 1}
 
 
+def get_distance_to_pos(sprite, pos, keep_distance):
+    return get_distance_to(sprite, pos.x, pos.y, keep_distance)
+
+def get_distance_to(sprite, posx, posy, keep_distance):
+    distance = sprite.distance_to(posx, posy) - keep_distance   
+    return distance
+
+
+
+
 def is_in_selectside(sprite, side):
     if side == "ENEMY":
         if (sprite.x * opt.ENEMY_DOOR_LEFT.x) >= 0:
@@ -154,13 +164,6 @@ def get_angle_to(sprite, posx, posy):
     else:
         angle = 9999 # This is error
     return angle
-
-def get_distance_to_pos(sprite, pos, keep_distance):
-    return get_distance_to(sprite, pos.x, pos.y, keep_distance)
-
-def get_distance_to(sprite, posx, posy, keep_distance):
-    distance = sprite.distance_to(posx, posy) - keep_distance   
-    return distance
 
 def is_ball_run_to_my_door(ball, keep_distance):
     if ball.vx * opt.MY_DOOR_LEFT.x > 0:
