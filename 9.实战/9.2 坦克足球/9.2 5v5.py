@@ -223,27 +223,27 @@ def get_position_face_target_keep_distance(src_sprite, target_pos, keep_distance
     print(f"src_sprite = ({src_sprite.x} , {src_sprite.y})")
     return opt.Pos(posx, posy)
 
-def get_position_beside(me, target_pos, keep_distance):
+def get_position_beside(me, ball, target_pos, keep_distance):
     # 要跑过头
-    if opt.ENEMY_DOOR_RIGHT.x > 0:
-        posx = target_pos.x - 15
+    if target_pos.x > 0:
+        posx = ball.x - 15
     else:
-        posx = target_pos.x + 15
+        posx = ball.x + 15
 
-    if target_pos.y > me.y :
-        posy = target_pos.y - keep_distance 
+    if ball.y > me.y :
+        posy = ball.y - keep_distance 
     else:
-        posy = target_pos.y + keep_distance
+        posy = ball.y + keep_distance
     return opt.Pos(posx, posy)
 
 
-def get_position(me, src_sprite, target_pos, keep_distance):
-    if target_pos == None:
-        pos = get_position_beside(me, src_sprite, keep_distance)
-    elif target_pos != None:     
-        pos = get_position_face_target_keep_distance(src_sprite, target_pos, keep_distance)
+def get_position(me, ball, target_pos, type, keep_distance):
+    if type == "BESIDE":
+        pos = get_position_beside(me, ball, target_pos, keep_distance)
+    elif type == "FACE_TARGET":     
+        pos = get_position_face_target_keep_distance(ball, target_pos, keep_distance)
     else:
-        pos = src_sprite
+        pos = ball
 
     print(f"raw_pos = ({pos.x} , {pos.y})")
 
@@ -377,20 +377,20 @@ def get_vshs_shot(me, ball, target, exact_pos, tankname):
     print(f"angle_target_ball_me = {angle_target_ball_me}")
     angle_optarget_ball_me = 180 - abs(angle_target_ball_me)
     print(f"angle_optarget_ball_me = {angle_optarget_ball_me}")
-    keep_distance = 20 * opt.BALL_RADIUS 
+    keep_distance = 25 * opt.BALL_RADIUS 
 
-    if  (me.x - ball.x) * opt.ENEMY_DOOR_LEFT.x > 0 : # 我在球和对方门之间
+    if  (me.x - ball.x) * target.x > 0 : # 我在球和目标之间
         print(f"Run to ball side to behind")
-        keep_distance = 4 * opt.BALL_RADIUS
-        to_pos = get_position(me, ball, None, keep_distance)
+        keep_distance = 8 * opt.BALL_RADIUS
+        to_pos = get_position(me, ball, target, "BESIDE", keep_distance)
     elif 0 <= angle_optarget_ball_me < 90 :
         print(f"Run to ball opp pos to target")
-        keep_distance = keep_distance * (math.sin(opt.a2r(angle_optarget_ball_me))**0.7)
-        to_pos = get_position(me, ball, target, keep_distance)        
+        keep_distance = keep_distance * ((0.5*(math.sin(opt.a2r(2 * angle_optarget_ball_me - 90))+1))**0.5)
+        to_pos = get_position(me, ball, target, "FACE_TARGET", keep_distance)        
     else :
         print(f"Run to ball opp pos from > 90")
         keep_distance = keep_distance
-        to_pos = get_position(me, ball, target, keep_distance)
+        to_pos = get_position(me, ball, target, "FACE_TARGET", keep_distance)
     
     print(f"keep_distance = {keep_distance}")
  
@@ -429,18 +429,18 @@ def get_vshs_run(me, ball, target, exact_pos, tankname):
     #     keep_distance = keep_distance
     #     to_pos = get_position(me, ball, target, keep_distance)
 
-    if  (me.x - ball.x) * opt.ENEMY_DOOR_LEFT.x > 0 : # 我在球和对方门之间
+    if  (me.x - ball.x) * target.x > 0 : # 我在球和目标之间
         print(f"Run to ball side to behind")
         keep_distance = 0 * opt.BALL_RADIUS
-        to_pos = get_position(me, ball, None, keep_distance)
+        to_pos = get_position(me, ball, target, "BESIDE", keep_distance)
     elif 0 <= angle_optarget_ball_me < 90 :
         print(f"Run to ball opp pos to target")
         keep_distance = keep_distance
-        to_pos = get_position(me, ball, target, keep_distance)        
+        to_pos = get_position(me, ball, target, "FACE_TARGET", keep_distance)        
     else :
         print(f"Run to ball opp pos from > 90")
         keep_distance = keep_distance
-        to_pos = get_position(me, ball, target, keep_distance)
+        to_pos = get_position(me, ball, target, "FACE_TARGET", keep_distance)
  
     print(f"keep_distance = {keep_distance}")
  
@@ -906,6 +906,8 @@ def defence(me, target, tankname):
     
     return vs, hs
 
+## ===================================================================================================
+
 # 控制你的 1 号机器人
 def tank1_update():
     tankname = "tank1"
@@ -917,9 +919,13 @@ def tank1_update():
     target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
     
     print_status(me, ball, tankname)
+
+    #======== begin ==============================
     
     vs, hs = attack(me, target, tankname)
    
+    #======== end ================================
+
     print_end(me, vs, hs, tankname)
 
     return vs, hs
