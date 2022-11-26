@@ -746,7 +746,7 @@ def get_position_in_back_side_line(ball, ly = 12):
 
     return pos
 
-def get_vshs_keeper1(me, ball, ly, exact_pos, tankname):
+def get_vshs_line_keeper(me, ball, ly, exact_pos, tankname):
     print(f"----get_vshs_keeper----")
     distance_to_ball = get_distance_to(me, ball.x, ball.y, 0)
     print(f"distance_to_ball = {distance_to_ball}")
@@ -780,12 +780,12 @@ def get_vshs_keeper1(me, ball, ly, exact_pos, tankname):
     
     return vs, hs
 
-def keeper1(me, target, ly, exact_pos,  tankname):
+def line_keeper(me, target, ly, exact_pos,  tankname):
     me = opt.TANK
     ball = opt.BALL
     target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
 
-    vs, hs = get_vshs_keeper1(me, ball, ly, exact_pos, tankname)
+    vs, hs = get_vshs_line_keeper(me, ball, ly, exact_pos, tankname)
 
     # 守门员开局开炮
     if abs(me.y) < 0.25:
@@ -954,8 +954,7 @@ def tank3_update():
     
     print_status(me, ball, tankname)
     
-    vs, hs = keeper1(me, ball, 12, True, tankname)
-    # vs, hs = keeper2(me, target, tankname)
+    vs, hs = line_keeper(me, ball, 12, True, tankname)
     
     print_end(me, vs, hs, tankname)
     
@@ -990,7 +989,7 @@ def tank5_update():
     
     print_status(me, ball, tankname)
     
-    vs, hs = keeper1(me, ball, 14, True, tankname)
+    vs, hs = line_keeper(me, ball, 14, True, tankname)
     # vs, hs = keeper2(me, target, tankname)
     
     print_end(me, vs, hs, tankname)
