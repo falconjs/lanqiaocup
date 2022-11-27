@@ -7,6 +7,7 @@ import math
 
 glb_env_var = {'totaltime': 180}
 stuck_count = {"tank1": 0, "tank2": 0, "tank3": 0, "tank4": 0, "tank5": 0}
+no_push_to_mydoor_count = {"tank1": 0, "tank2": 0, "tank3": 0, "tank4": 0, "tank5": 0}
 run_direct = {"tank1": 1, "tank2": 1, "tank3": 1, "tank4": 1, "tank5": 1}
 switch_keeper_pos = "CENTER"
 
@@ -252,7 +253,7 @@ def get_position(me, ball, target_pos, type, keep_distance):
 
 
 def get_line_direct_to_pos_onside(k, b, direct):
-    print(f"k = {k}, b = {b}, direct = {direct}")
+    # print(f"k = {k}, b = {b}, direct = {direct}")
     if k == 0:
         print(f"Error : K == 0")
     else:
@@ -381,7 +382,7 @@ def get_vshs_shot(me, ball, target, exact_pos, tankname):
 
     if  (me.x - ball.x) * target.x > 0 : # 我在球和目标之间
         print(f"Run to ball side to behind")
-        keep_distance = 8 * opt.BALL_RADIUS
+        keep_distance = 7 * opt.BALL_RADIUS # 8以上会导致守门员回不到位
         to_pos = get_position(me, ball, target, "BESIDE", keep_distance)
     elif 0 <= angle_optarget_ball_me < 90 :
         print(f"Run to ball opp pos to target")
@@ -696,7 +697,7 @@ def get_position_in_front_center_line(ball):
     y = ball.y
 
     distance_to_enemydoor = 2
-    distance_to_position = 4
+    distance_to_position = 6
 
     dist_x = abs(opt.ENEMY_DOOR_LEFT.x - x)
     dist_y = abs(y)
@@ -754,6 +755,7 @@ def get_vshs_line_keeper(me, ball, ly, exact_pos, tankname):
     
     # 默认跑向中心
     to_pos = opt.Pos( 0, 0 ) 
+    center_position = opt.Pos(0, 0)
 
     # 移动
 
@@ -774,10 +776,46 @@ def get_vshs_line_keeper(me, ball, ly, exact_pos, tankname):
         vs, hs = get_vshs_run_to_pos_exact(me, to_pos.x, to_pos.y, 0, tankname) # 修改减速可以停到位子
     else :
         vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
-   
-    if get_distance_to_pos(me, to_pos, 0) > (4 * opt.BALL_RADIUS):
+
+    vs, hs = get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname)
+
+    if get_distance_to_pos(me, to_pos, 0) > (4 * opt.BALL_RADIUS) \
+       and get_distance_to_pos(me, center_position, 0) > (10 * opt.BALL_RADIUS):
+       # 目标位置，中场位置以外
         vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
     
+    return vs, hs
+
+
+def is_not_push_to_mydoor(me, ball, tankname):
+    global no_push_to_mydoor_count
+    no_push_to_mydoor_duration = -30
+    print(f"no_push_to_mydoor_count[{tankname}] = {no_push_to_mydoor_count[tankname]}")
+    if no_push_to_mydoor_count[tankname] < 0 : # 卡住中，倒计时
+        no_push_to_mydoor_count[tankname] = no_push_to_mydoor_count[tankname] + 1
+        return True
+    else:
+        if get_distance_to_pos(me, ball, 0) <= 6 * opt.BALL_RADIUS \
+            and abs(me.y) < 11 \
+            and abs(ball.x - opt.MY_DOOR_LEFT.x) <= 1.2 * opt.BALL_RADIUS \
+            and ball.vy * ball.y < 0 \
+            : # 我在球的一定范围内, 坦克在门前, 球在我方底线，朝着门在运动，
+            no_push_to_mydoor_count[tankname] = no_push_to_mydoor_count[tankname] + 1 
+        else:
+            no_push_to_mydoor_count[tankname] = 0
+    if no_push_to_mydoor_count[tankname] >= 5: # 卡住了
+        no_push_to_mydoor_count[tankname] = no_push_to_mydoor_duration
+        return True
+    return False
+
+
+def get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname):
+    if is_not_push_to_mydoor(me, ball, tankname):
+        print(f"后退防止球被撞入自家球门")
+        to_pos = opt.Pos(me.x - math.copysign(1 * opt.TANK_LENGTH, opt.MY_DOOR_LEFT.x), me.y)
+        print(f"to_pos = ({to_pos.x} , {to_pos.y})")
+        vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
+
     return vs, hs
 
 def line_keeper(me, target, ly, exact_pos,  tankname):
@@ -813,6 +851,7 @@ def attack_move(me, target, tankname):
     me = opt.TANK
     ball = opt.BALL
     target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
+    center_position = opt.Pos(0, 0)
     # run and push the ball to the enemy gate
 
     # 获取车球的指向
@@ -850,8 +889,12 @@ def attack_move(me, target, tankname):
     else:
         vs, hs = get_vshs_run(me, ball, target, False, tankname) 
 
+    vs, hs = get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname)
+
     # 防止卡住
-    vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
+    if get_distance_to_pos(me, center_position, 0) > (10 * opt.BALL_RADIUS): 
+        #中场位置以外
+        vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
 
     return vs, hs
 
@@ -875,6 +918,7 @@ def defence_move(me, target, tankname):
     ball = opt.BALL
     target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
     my_position = opt.Pos(math.copysign(abs(opt.MY_DOOR_RIGHT.x) - 1.2 * opt.TANK_LENGTH, opt.MY_DOOR_RIGHT.x), 0)
+    center_position = opt.Pos(0, 0)
     # run and push the ball to the enemy gate
 
     # 获取车球的指向
@@ -885,12 +929,15 @@ def defence_move(me, target, tankname):
 
     if is_run_toward_selectside(ball, "MY", 20) \
         or (is_in_selectside(ball, "MY") and not is_run_toward_selectside(ball, "ENEMY", 20))\
-        :
+        : # 球快速朝向我方，球在我刚场地，没有朝向对方场地
         vs, hs = get_vshs_run(me, ball, target, False, tankname) 
     else:
         vs, hs = get_vshs_shot(me, my_position, target, True, tankname)
 
-    if get_distance_to_pos(me, my_position, 0) > (4 * opt.BALL_RADIUS):
+    if get_distance_to_pos(me, my_position, 0) > (4 * opt.BALL_RADIUS) \
+        and get_distance_to_pos(me, center_position, 0) > (10 * opt.BALL_RADIUS) \
+        and not (abs(me.x) < (50-opt.TANK_LENGTH) and abs(me.x - opt.MY_DOOR_LEFT.x) < 16 and abs(me.y - 0) < 16) \
+        : # 守门位子，中场位子, 禁区除外
         vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
 
     return vs, hs
@@ -942,7 +989,7 @@ def tank2_update():
     
     print_status(me, ball, tankname)
     
-    vs, hs = attack(me, target, tankname)
+    vs, hs = line_keeper(me, ball, 12, True, tankname)
     
     print_end(me, vs, hs, tankname)
 
@@ -959,10 +1006,9 @@ def tank3_update():
     target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
     
     print_status(me, ball, tankname)
-    
-    vs, hs = line_keeper(me, ball, 12, True, tankname)
-    
+
+    vs, hs = defence(me, target, tankname)    
+
     print_end(me, vs, hs, tankname)
     
     return vs, hs
-
