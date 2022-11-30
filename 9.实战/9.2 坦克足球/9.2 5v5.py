@@ -697,7 +697,7 @@ def get_position_in_front_center_line(ball):
     y = ball.y
 
     distance_to_enemydoor = 2
-    distance_to_position = 4
+    distance_to_position = 6
 
     dist_x = abs(opt.ENEMY_DOOR_LEFT.x - x)
     dist_y = abs(y)
@@ -812,9 +812,18 @@ def is_not_push_to_mydoor(me, ball, tankname):
 def get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname):
     if is_not_push_to_mydoor(me, ball, tankname):
         print(f"后退防止球被撞入自家球门")
-        to_pos = opt.Pos(me.x - math.copysign(1 * opt.TANK_LENGTH, opt.MY_DOOR_LEFT.x), me.y)
-        print(f"to_pos = ({to_pos.x} , {to_pos.y})")
-        vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
+
+        # to_pos = opt.Pos(me.x - math.copysign(1 * opt.TANK_LENGTH, opt.MY_DOOR_LEFT.x), me.y)
+        # keep_distance = 4 * opt.BALL_RADIUS
+        # to_pos = get_position_face_target_keep_distance(me, ball, keep_distance)
+        # print(f"to_pos = ({to_pos.x} , {to_pos.y})")
+        # vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
+
+        # 直接倒车
+        if run_direct[tankname] == 1:
+            vs, hs = -1, 0
+        elif run_direct[tankname] == -1:
+            vs, hs = 1, 0
 
     return vs, hs
 
@@ -927,12 +936,14 @@ def defence_move(me, target, tankname):
     # dist_pos = get_distance_to_pos(me, ball, 0)
     # angle_pos = get_angle_to_pos(me, ball)
 
-    if is_run_toward_selectside(ball, "MY", 20) \
+    if is_run_toward_selectside(ball, "MY", 15) \
         or (is_in_selectside(ball, "MY") and not is_run_toward_selectside(ball, "ENEMY", 20))\
         : # 球快速朝向我方，球在我刚场地，没有朝向对方场地
         vs, hs = get_vshs_run(me, ball, target, False, tankname) 
     else:
         vs, hs = get_vshs_shot(me, my_position, target, True, tankname)
+
+    vs, hs = get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname)
 
     if get_distance_to_pos(me, my_position, 0) > (4 * opt.BALL_RADIUS) \
         and get_distance_to_pos(me, center_position, 0) > (10 * opt.BALL_RADIUS) \
