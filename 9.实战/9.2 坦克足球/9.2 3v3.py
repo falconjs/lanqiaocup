@@ -297,11 +297,11 @@ def get_s2s_to_pos_onside(sp1, sp2, rebound):
     elif (sp2.y - sp1.y) == 0:
         # 水平线，不可使用上面公式
         if (sp2.x - sp1.x) > 0:
-            pos = opt.Pos(sp2.x, 25)
+            pos = opt.Pos(50, sp2.y)
         elif (sp2.x - sp1.x) < 0:
-            pos = opt.Pos(sp2.x, -25)
+            pos = opt.Pos(-50, sp2.y)
         if rebound == 1:
-            pos = None
+            pos = sp1 # 反弹自己身上
    
     elif (sp2.x - sp1.x) == 0: 
         # 垂直线，不可使用上面公式
@@ -310,10 +310,10 @@ def get_s2s_to_pos_onside(sp1, sp2, rebound):
         elif (sp2.y - sp1.y) < 0:
             pos = opt.Pos(sp2.x, -25)
         if rebound == 1:
-            pos = None
+            pos = sp1
 
-    if pos is None:
-        print(f"get_s2s_to_pos_onside: pos = None")
+    if pos.x == sp1.x and pos.y == sp1.y:
+        print(f"get_s2s_to_pos_onside: pos = sp1")
     else :
         print(f"get_s2s_to_pos_onside: x={pos.x}, y={pos.y}")
     return pos
