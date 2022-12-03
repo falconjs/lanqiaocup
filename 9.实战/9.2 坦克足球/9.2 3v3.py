@@ -936,7 +936,7 @@ def defence_move(me, target, tankname):
     # dist_pos = get_distance_to_pos(me, ball, 0)
     # angle_pos = get_angle_to_pos(me, ball)
 
-    if is_run_toward_selectside(ball, "MY", 20) \
+    if is_run_toward_selectside(ball, "MY", 15) \
         or (is_in_selectside(ball, "MY") and not is_run_toward_selectside(ball, "ENEMY", 20))\
         : # 球快速朝向我方，球在我刚场地，没有朝向对方场地
         vs, hs = get_vshs_run(me, ball, target, False, tankname) 
