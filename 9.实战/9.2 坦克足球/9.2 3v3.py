@@ -17,6 +17,7 @@ switch_keeper_pos = "CENTER"
 
 def print_start(tankname):
     global glb_env_var
+    print(f"=================================  >>>>>>>>>>>>>>>  ===================================")
     print(f"----{tankname}---- 秒 = {glb_env_var['totaltime'] - opt.time_step()/80} -----------")
 
 
@@ -689,6 +690,10 @@ def get_position_in_horizontal_line(x, ly, minx, maxx):
     y = ly
     return opt.Pos(x, y)
 
+def get_position_in_second(ball, second):
+    x = ball.x + ball.vx * second
+    y = ball.y + ball.vy * second
+    return opt.Pos(x, y)
 
 def get_position_in_front_center_line(ball):
     print(f"get_position_in_front_center_line")
@@ -702,6 +707,8 @@ def get_position_in_front_center_line(ball):
     dist_x = abs(opt.ENEMY_DOOR_LEFT.x - x)
     dist_y = abs(y)
 
+    enemydoor_front_x = opt.ENEMY_DOOR_LEFT.x
+
     if dist_x >= distance_to_position:
         # 跑到门前准备位
         enemydoor_front_x = opt.ENEMY_DOOR_LEFT.x - math.copysign( 
@@ -710,21 +717,29 @@ def get_position_in_front_center_line(ball):
         )
     elif dist_x < distance_to_position:
         # 门前冲球
-
         rate = max( dist_x / distance_to_position, dist_y / (opt.GROUND_HEIGHT/2) )
         dist_diff = math.copysign( 
             (distance_to_position - distance_to_enemydoor) * rate + distance_to_enemydoor,
             opt.ENEMY_DOOR_LEFT.x
         )
-
         enemydoor_front_x = opt.ENEMY_DOOR_LEFT.x - dist_diff
-
+        
     lminx = min(0, enemydoor_front_x)
     lmaxx = max(0, enemydoor_front_x)
 
     # 与球保持水平
     # 需要提前或者落后，在此处调整
     pos = get_position_in_horizontal_line(x, ly, lminx, lmaxx)
+
+    # 球往回滚, 球往中线滚
+    if ball.vx * opt.ENEMY_DOOR_LEFT.x < 0 \
+        and ball.vy * ball.y < 0 \
+        : 
+        pos_temp = get_position_in_second(ball, abs(ball.y/ball.vy))
+        pos = opt.Pos(
+                pos_temp.x - math.copysign(1 * opt.BALL_RADIUS, opt.ENEMY_DOOR_LEFT.x),
+                pos_temp.y
+            )
 
     return pos
 
