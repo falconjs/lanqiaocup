@@ -7,6 +7,7 @@ import math
 
 glb_env_var = {'totaltime': 180}
 stuck_count = {"tank1": 0, "tank2": 0, "tank3": 0, "tank4": 0, "tank5": 0}
+no_push_to_mydoor_count = {"tank1": 0, "tank2": 0, "tank3": 0, "tank4": 0, "tank5": 0}
 run_direct = {"tank1": 1, "tank2": 1, "tank3": 1, "tank4": 1, "tank5": 1}
 switch_keeper_pos = "CENTER"
 
@@ -16,6 +17,7 @@ switch_keeper_pos = "CENTER"
 
 def print_start(tankname):
     global glb_env_var
+    print(f"=================================  >>>>>>>>>>>>>>>  ===================================")
     print(f"----{tankname}---- 秒 = {glb_env_var['totaltime'] - opt.time_step()/80} -----------")
 
 
@@ -252,7 +254,7 @@ def get_position(me, ball, target_pos, type, keep_distance):
 
 
 def get_line_direct_to_pos_onside(k, b, direct):
-    print(f"k = {k}, b = {b}, direct = {direct}")
+    # print(f"k = {k}, b = {b}, direct = {direct}")
     if k == 0:
         print(f"Error : K == 0")
     else:
@@ -296,11 +298,11 @@ def get_s2s_to_pos_onside(sp1, sp2, rebound):
     elif (sp2.y - sp1.y) == 0:
         # 水平线，不可使用上面公式
         if (sp2.x - sp1.x) > 0:
-            pos = opt.Pos(sp2.x, 25)
+            pos = opt.Pos(50, sp2.y)
         elif (sp2.x - sp1.x) < 0:
-            pos = opt.Pos(sp2.x, -25)
+            pos = opt.Pos(-50, sp2.y)
         if rebound == 1:
-            pos = None
+            pos = sp1 # 反弹自己身上
    
     elif (sp2.x - sp1.x) == 0: 
         # 垂直线，不可使用上面公式
@@ -309,10 +311,10 @@ def get_s2s_to_pos_onside(sp1, sp2, rebound):
         elif (sp2.y - sp1.y) < 0:
             pos = opt.Pos(sp2.x, -25)
         if rebound == 1:
-            pos = None
+            pos = sp1
 
-    if pos is None:
-        print(f"get_s2s_to_pos_onside: pos = None")
+    if pos.x == sp1.x and pos.y == sp1.y:
+        print(f"get_s2s_to_pos_onside: pos = sp1")
     else :
         print(f"get_s2s_to_pos_onside: x={pos.x}, y={pos.y}")
     return pos
@@ -688,6 +690,10 @@ def get_position_in_horizontal_line(x, ly, minx, maxx):
     y = ly
     return opt.Pos(x, y)
 
+def get_position_in_second(ball, second):
+    x = ball.x + ball.vx * second
+    y = ball.y + ball.vy * second
+    return opt.Pos(x, y)
 
 def get_position_in_front_center_line(ball):
     print(f"get_position_in_front_center_line")
@@ -696,10 +702,12 @@ def get_position_in_front_center_line(ball):
     y = ball.y
 
     distance_to_enemydoor = 2
-    distance_to_position = 4
+    distance_to_position = 6
 
     dist_x = abs(opt.ENEMY_DOOR_LEFT.x - x)
     dist_y = abs(y)
+
+    enemydoor_front_x = opt.ENEMY_DOOR_LEFT.x
 
     if dist_x >= distance_to_position:
         # 跑到门前准备位
@@ -709,21 +717,29 @@ def get_position_in_front_center_line(ball):
         )
     elif dist_x < distance_to_position:
         # 门前冲球
-
         rate = max( dist_x / distance_to_position, dist_y / (opt.GROUND_HEIGHT/2) )
         dist_diff = math.copysign( 
             (distance_to_position - distance_to_enemydoor) * rate + distance_to_enemydoor,
             opt.ENEMY_DOOR_LEFT.x
         )
-
         enemydoor_front_x = opt.ENEMY_DOOR_LEFT.x - dist_diff
-
+        
     lminx = min(0, enemydoor_front_x)
     lmaxx = max(0, enemydoor_front_x)
 
     # 与球保持水平
     # 需要提前或者落后，在此处调整
     pos = get_position_in_horizontal_line(x, ly, lminx, lmaxx)
+
+    # 球往回滚, 球往中线滚
+    if ball.vx * opt.ENEMY_DOOR_LEFT.x < 0 \
+        and ball.vy * ball.y < 0 \
+        : 
+        pos_temp = get_position_in_second(ball, abs(ball.y/ball.vy))
+        pos = opt.Pos(
+                pos_temp.x - math.copysign(1 * opt.BALL_RADIUS, opt.ENEMY_DOOR_LEFT.x),
+                pos_temp.y
+            )
 
     return pos
 
@@ -775,7 +791,7 @@ def get_vshs_line_keeper(me, ball, ly, exact_pos, tankname):
         vs, hs = get_vshs_run_to_pos_exact(me, to_pos.x, to_pos.y, 0, tankname) # 修改减速可以停到位子
     else :
         vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
-   
+
     vs, hs = get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname)
 
     if get_distance_to_pos(me, to_pos, 0) > (4 * opt.BALL_RADIUS) \
@@ -786,16 +802,43 @@ def get_vshs_line_keeper(me, ball, ly, exact_pos, tankname):
     return vs, hs
 
 
-def get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname):
-    if get_distance_to_pos(me, ball, 0) <= 6 * opt.BALL_RADIUS \
-        and abs(me.y) < 11 \
-        and abs(ball.x - opt.MY_DOOR_LEFT.x) <= 1.2 * opt.BALL_RADIUS \
-        and ball.vy * ball.y < 0 \
-        : # 我在球的一定范围内, 坦克在门前, 球在我方底线，朝着门在运动，
-        print(f"后退防止球被撞入自家球门")
-        to_pos = opt.Pos(me.x - math.copysign(1 * opt.TANK_LENGTH, opt.MY_DOOR_LEFT.x), me.y)
+def is_not_push_to_mydoor(me, ball, tankname):
+    global no_push_to_mydoor_count
+    no_push_to_mydoor_duration = -30
+    print(f"no_push_to_mydoor_count[{tankname}] = {no_push_to_mydoor_count[tankname]}")
+    if no_push_to_mydoor_count[tankname] < 0 : # 卡住中，倒计时
+        no_push_to_mydoor_count[tankname] = no_push_to_mydoor_count[tankname] + 1
+        return True
+    else:
+        if get_distance_to_pos(me, ball, 0) <= 6 * opt.BALL_RADIUS \
+            and abs(me.y) < 11 \
+            and abs(ball.x - opt.MY_DOOR_LEFT.x) <= 1.2 * opt.BALL_RADIUS \
+            and ball.vy * ball.y < 0 \
+            : # 我在球的一定范围内, 坦克在门前, 球在我方底线，朝着门在运动，
+            no_push_to_mydoor_count[tankname] = no_push_to_mydoor_count[tankname] + 1 
+        else:
+            no_push_to_mydoor_count[tankname] = 0
+    if no_push_to_mydoor_count[tankname] >= 5: # 卡住了
+        no_push_to_mydoor_count[tankname] = no_push_to_mydoor_duration
+        return True
+    return False
 
-        vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
+
+def get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname):
+    if is_not_push_to_mydoor(me, ball, tankname):
+        print(f"后退防止球被撞入自家球门")
+
+        # to_pos = opt.Pos(me.x - math.copysign(1 * opt.TANK_LENGTH, opt.MY_DOOR_LEFT.x), me.y)
+        # keep_distance = 4 * opt.BALL_RADIUS
+        # to_pos = get_position_face_target_keep_distance(me, ball, keep_distance)
+        # print(f"to_pos = ({to_pos.x} , {to_pos.y})")
+        # vs, hs = get_vshs_run_to_pos(me, to_pos.x, to_pos.y, 0, tankname)
+
+        # 直接倒车
+        if run_direct[tankname] == 1:
+            vs, hs = -1, 0
+        elif run_direct[tankname] == -1:
+            vs, hs = 1, 0
 
     return vs, hs
 
@@ -908,12 +951,14 @@ def defence_move(me, target, tankname):
     # dist_pos = get_distance_to_pos(me, ball, 0)
     # angle_pos = get_angle_to_pos(me, ball)
 
-    if is_run_toward_selectside(ball, "MY", 20) \
+    if is_run_toward_selectside(ball, "MY", 15) \
         or (is_in_selectside(ball, "MY") and not is_run_toward_selectside(ball, "ENEMY", 20))\
         : # 球快速朝向我方，球在我刚场地，没有朝向对方场地
         vs, hs = get_vshs_run(me, ball, target, False, tankname) 
     else:
         vs, hs = get_vshs_shot(me, my_position, target, True, tankname)
+
+    vs, hs = get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname)
 
     if get_distance_to_pos(me, my_position, 0) > (4 * opt.BALL_RADIUS) \
         and get_distance_to_pos(me, center_position, 0) > (10 * opt.BALL_RADIUS) \
@@ -970,7 +1015,7 @@ def tank2_update():
     
     print_status(me, ball, tankname)
     
-    vs, hs = attack(me, target, tankname)
+    vs, hs = line_keeper(me, ball, 12, True, tankname)
     
     print_end(me, vs, hs, tankname)
 
@@ -987,47 +1032,9 @@ def tank3_update():
     target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
     
     print_status(me, ball, tankname)
-    
-    vs, hs = line_keeper(me, ball, 12, True, tankname)
-    
+
+    vs, hs = defence(me, target, tankname)    
+
     print_end(me, vs, hs, tankname)
     
     return vs, hs
-
-# 控制你的 4 号机器人
-def tank4_update():
-    tankname = "tank4"
-    print_start(tankname)
-
-    me = opt.TANK
-    ball = opt.BALL
-    target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
-    
-    print_status(me, ball, tankname)
-    
-    vs, hs = line_keeper(me, ball, 15, True, tankname)
-    # vs, hs = defence(me, target, tankname)
-    
-    print_end(me, vs, hs, tankname)
-
-    return vs, hs
-
-
-# 控制你球门的5号机器人
-def tank5_update():
-    tankname = "tank5"
-    print_start(tankname)
-    
-    me = opt.TANK
-    ball = opt.BALL
-    target = opt.Pos(opt.ENEMY_DOOR_RIGHT.x, opt.ENEMY_DOOR_RIGHT.y * 0)
-    
-    print_status(me, ball, tankname)
-    
-    # vs, hs = line_keeper(me, ball, 14, True, tankname)
-    vs, hs = defence(me, target, tankname)
-    
-    print_end(me, vs, hs, tankname)
-    
-    return vs, hs
-
