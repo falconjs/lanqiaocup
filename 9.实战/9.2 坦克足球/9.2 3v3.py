@@ -500,34 +500,53 @@ def tank_fire(tank):
 
 def check_for_fire(vs, hs, me, ball):
     print(f" Check for fire ")
-    pos = get_s2s_to_pos_onside(me, ball, 0)
-    if (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= 1) \
-        and (opt.ENEMY_DOOR_LEFT.x-1 <= pos.x <= opt.ENEMY_DOOR_LEFT.x+1) \
-        and (-8 <= pos.y <= 8) \
-        :
-        if tank_fire(me):
-            vs, hs = 0, 0
-    
-    if (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= 1) \
-        and (opt.MY_DOOR_LEFT.x-1 <= pos.x <= opt.MY_DOOR_LEFT.x+1) \
-        and (abs(pos.y) <= 25) \
-        :
-        # 面对自己门不能开折射跑
-        None
-    elif (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= 1) \
-        and (abs(pos.x) >= 45 ) \
-        :
-        # 面对太靠底线不能开折射跑
-        None
-    else:
-        pos = get_s2s_to_pos_onside(me, ball, 1)
-        if (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= 0.5) \
+
+    # 球在紧贴边上
+    left, right = -50 + 1.5 * opt.BALL_RADIUS, 50 - 1.5 * opt.BALL_RADIUS
+    top, bottom = 25 - 1.5 * opt.BALL_RADIUS, -25 + 1.5 * opt.BALL_RADIUS
+
+    left2, right2 = -50, 52
+    top2, bottom2 = 9, -9
+
+    acc_rate = 1
+
+    if (
+        is_sprite_in_area(ball, left, right, top, bottom) 
+        or is_sprite_in_area(ball, left2, right2, top2, bottom2) 
+    ):
+        ball_dis_to_door = get_distance_to(ball, opt.ENEMY_DOOR_LEFT.x, 0, 0)
+        me_dis_to_ball = get_distance_to_pos(me, ball, 0)
+        if ball_dis_to_door <= 8 and me_dis_to_ball <= 4:
+            acc_rate = 5
+
+        pos = get_s2s_to_pos_onside(me, ball, 0)
+        if (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= acc_rate) \
             and (opt.ENEMY_DOOR_LEFT.x-1 <= pos.x <= opt.ENEMY_DOOR_LEFT.x+1) \
-            and (-4 <= pos.y <= 4) \
-            and abs(opt.r2a(me.vr)) < 100 \
+            and (-8 <= pos.y <= 8) \
             :
             if tank_fire(me):
                 vs, hs = 0, 0
+        
+        if (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= acc_rate) \
+            and (opt.MY_DOOR_LEFT.x-1 <= pos.x <= opt.MY_DOOR_LEFT.x+1) \
+            and (abs(pos.y) <= 25) \
+            :
+            # 面对自己门不能开折射跑
+            None
+        elif (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= acc_rate) \
+            and (abs(pos.x) >= 45 ) \
+            :
+            # 面对太靠底线不能开折射跑
+            None
+        else:
+            pos = get_s2s_to_pos_onside(me, ball, 1)
+            if (0 <= abs(get_angle_to(me, ball.x, ball.y)) <= 0.5) \
+                and (opt.ENEMY_DOOR_LEFT.x-1 <= pos.x <= opt.ENEMY_DOOR_LEFT.x+1) \
+                and (-4 <= pos.y <= 4) \
+                and abs(opt.r2a(me.vr)) < 100 \
+                :
+                if tank_fire(me):
+                    vs, hs = 0, 0
 
     return vs, hs
 
@@ -708,7 +727,7 @@ def get_position_in_front_center_line(me, ball, ly = 0):
     y = ball.y
 
     distance_to_enemydoor = 1.8
-    distance_to_position = 8
+    distance_to_position = 10
 
     dist_x = abs(opt.ENEMY_DOOR_LEFT.x - x)
     dist_y = abs(y)
@@ -752,14 +771,42 @@ def get_position_in_front_center_line(me, ball, ly = 0):
     if ball.vx * opt.ENEMY_DOOR_LEFT.x < 0 \
         and ball.vy * ball.y < 0 \
         : 
-        pos_temp = get_position_in_second(ball, abs(ball.y/(ball.vy + 0.000001)))
+        pos_temp = get_position_in_second(ball, abs((ball.y-ly)/(ball.vy + 0.000001)))
         pos = opt.Pos(
-                pos_temp.x - math.copysign(1 * opt.BALL_RADIUS, opt.ENEMY_DOOR_LEFT.x),
+                pos_temp.x - math.copysign(1.5 * opt.BALL_RADIUS, opt.ENEMY_DOOR_LEFT.x),
                 pos_temp.y
             )
         exact_pos = True # 即使反弹，球还会在前方，False 会导致冲太快
 
     return pos, exact_pos
+
+def is_sprite_in_area(tank, left, right, top, bottom):
+    if left <= tank.x <= right and bottom <= tank.y <= top:
+        return True
+    else:
+        return False
+
+def get_enemy_tanks_at_mydoor(me):
+    closest_tank = None
+    closest_distance = 255
+    for tank in opt.enemy_tanks():
+        left = min(
+                math.copysign(abs(opt.MY_DOOR_LEFT.x) - opt.TANK_WIDTH * 1.5, opt.MY_DOOR_LEFT.x), 
+                math.copysign(abs(opt.MY_DOOR_LEFT.x) - 16, opt.MY_DOOR_LEFT.x)
+            )
+        right = max(
+                math.copysign(abs(opt.MY_DOOR_LEFT.x) - opt.TANK_WIDTH * 1.5, opt.MY_DOOR_LEFT.x), 
+                math.copysign(abs(opt.MY_DOOR_LEFT.x) - 16, opt.MY_DOOR_LEFT.x)
+            )
+        top = 10
+        bottom = -10 
+        if tank.is_enemy() and is_sprite_in_area(tank, left, right, top, bottom):
+            distance = get_distance_to(tank, opt.MY_DOOR_LEFT.x, 0, 0)
+            if distance < closest_distance :
+                closest_tank = tank
+                closest_distance = distance
+    
+    return closest_tank
 
 def get_position_in_back_side_line(me, ball, ly = 12):
     print(f"get_position_in_back_side_line")
@@ -780,16 +827,26 @@ def get_position_in_back_side_line(me, ball, ly = 12):
     # 需要提前或者落后，在此处调整
     pos = get_position_in_horizontal_line(x, ly, lminx, lmaxx)
 
-    # 如果球到底线，我在底线，我在球与门柱之间
     in_sec = 0.5 * get_distance_to_pos(me, ball, 0) / get_speed(ball)
     ball_next_pos = get_position_in_second(ball, in_sec)
-    print(f"ball_next_pos : ({ball_next_pos.x}, {ball_next_pos.y})")
-    if abs(ball_next_pos.x - opt.MY_DOOR_LEFT.x) <= (distance_to_mydoor * opt.BALL_RADIUS) \
-        and abs(me.x - opt.MY_DOOR_LEFT.x) <= ((distance_to_mydoor + 2) * opt.BALL_RADIUS) \
-        and (me.y * ball_next_pos.y >= 0 and abs(opt.MY_DOOR_LEFT.y) < abs(me.y) < abs(ball_next_pos.y)) \
-        :
-        pos = ball_next_pos
-        exact_pos = False #冲击
+    print(f"back_side_line: ball_next_pos : ({ball_next_pos.x}, {ball_next_pos.y})")
+    if ( # 如果球到底线，我在底线，
+        abs(ball_next_pos.x - opt.MY_DOOR_LEFT.x) <= (distance_to_mydoor * opt.BALL_RADIUS) 
+        and abs(me.x - opt.MY_DOOR_LEFT.x) <= ((distance_to_mydoor + 4) * opt.BALL_RADIUS) 
+    ) :
+        print(f"back_side_line: ball at bottom line")
+        # 如果有敌方在门口，改成撞击敌方坦克
+        enemy_tank = get_enemy_tanks_at_mydoor(me)
+        if enemy_tank != None:
+            print(f"back_side_line: hit tank at the door : ({enemy_tank.x}, {enemy_tank.y})")
+            pos = get_position_in_second(enemy_tank, 0.2)
+            exact_pos = False
+        elif ( # 我在球与门柱之间
+            me.y * ball_next_pos.y >= 0 and abs(opt.MY_DOOR_LEFT.y) < abs(me.y) < abs(ball_next_pos.y)
+        ) :
+            print(f"back_side_line: hit ball close to door : ({ball_next_pos.x}, {ball_next_pos.y})")
+            pos = ball_next_pos
+            exact_pos = False #冲击
 
     return pos, exact_pos
 
@@ -834,7 +891,6 @@ def get_vshs_line_keeper(me, ball, att_ly, def_ly, tankname):
     
     return vs, hs
 
-
 def is_push_to_mydoor(me, ball, tankname):
     global no_push_to_mydoor_count
     no_push_to_mydoor_duration = -30
@@ -861,12 +917,12 @@ def is_push_to_mydoor(me, ball, tankname):
 def get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname):
     if is_push_to_mydoor(me, ball, tankname):
         print(f"后退防止球被撞入自家球门")
-
-        # 直接倒车
+        
+        # 直接往门里倒车
         if run_direct[tankname] == 1:
-            vs, hs = -1, 0
+            vs, hs = -1, math.copysign(0.7, get_angle_to(me, opt.MY_DOOR_LEFT.x, 0))
         elif run_direct[tankname] == -1:
-            vs, hs = 1, 0
+            vs, hs = 1, math.copysign(0.7, get_angle_to(me, opt.MY_DOOR_LEFT.x, 0))
 
     return vs, hs
 
