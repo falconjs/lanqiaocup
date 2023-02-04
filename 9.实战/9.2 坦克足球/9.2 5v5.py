@@ -791,11 +791,11 @@ def get_enemy_tanks_at_mydoor(me):
     closest_distance = 255
     for tank in opt.enemy_tanks():
         left = min(
-                math.copysign(abs(opt.MY_DOOR_LEFT.x) - opt.TANK_WIDTH * 1.5, opt.MY_DOOR_LEFT.x), 
+                math.copysign(abs(opt.MY_DOOR_LEFT.x) - opt.TANK_WIDTH * 0.5, opt.MY_DOOR_LEFT.x), 
                 math.copysign(abs(opt.MY_DOOR_LEFT.x) - 16, opt.MY_DOOR_LEFT.x)
             )
         right = max(
-                math.copysign(abs(opt.MY_DOOR_LEFT.x) - opt.TANK_WIDTH * 1.5, opt.MY_DOOR_LEFT.x), 
+                math.copysign(abs(opt.MY_DOOR_LEFT.x) - opt.TANK_WIDTH * 0.5, opt.MY_DOOR_LEFT.x), 
                 math.copysign(abs(opt.MY_DOOR_LEFT.x) - 16, opt.MY_DOOR_LEFT.x)
             )
         top = 10
@@ -827,12 +827,12 @@ def get_position_in_back_side_line(me, ball, ly = 12):
     # 需要提前或者落后，在此处调整
     pos = get_position_in_horizontal_line(x, ly, lminx, lmaxx)
 
-    in_sec = 0.5 * get_distance_to_pos(me, ball, 0) / get_speed(ball)
+    in_sec = 0.5 * get_distance_to_pos(me, ball, 1) / get_speed(ball)
     ball_next_pos = get_position_in_second(ball, in_sec)
     print(f"back_side_line: ball_next_pos : ({ball_next_pos.x}, {ball_next_pos.y})")
     if ( # 如果球到底线，我在底线，
         abs(ball_next_pos.x - opt.MY_DOOR_LEFT.x) <= (distance_to_mydoor * opt.BALL_RADIUS) 
-        and abs(me.x - opt.MY_DOOR_LEFT.x) <= ((distance_to_mydoor + 4) * opt.BALL_RADIUS) 
+        and abs(me.x - opt.MY_DOOR_LEFT.x) <= ((distance_to_mydoor + 5) * opt.BALL_RADIUS) 
     ) :
         print(f"back_side_line: ball at bottom line")
         # 如果有敌方在门口，改成撞击敌方坦克
@@ -1036,7 +1036,7 @@ def defence_move(me, target, tankname):
     if is_run_toward_selectside(ball, "MY", 15) \
         or (is_in_selectside(ball, "MY") and not is_run_toward_selectside(ball, "ENEMY", 20))\
         : # 球快速朝向我方，球在我方场地，没有朝向对方场地
-        in_sec = 0.5 * get_distance_to_pos(me, ball, 0) / get_speed(ball)
+        in_sec = 0.5 * get_distance_to_pos(me, ball, 1) / get_speed(ball)
         vs, hs = get_vshs_run(me, ball, target, False, in_sec, tankname) 
     else:
         # 跑到门口守门员位子
@@ -1044,16 +1044,18 @@ def defence_move(me, target, tankname):
 
     vs, hs = get_vshs_not_push_to_my_door(vs, hs, me, ball, tankname)
 
-    if ( 
-            get_distance_to_pos(me, my_position, 0) > ((opt.DOOR_WIDTH - opt.TANK_LENGTH) / 2) # 守门位子
-            and get_distance_to_pos(me, center_position, 0) > (10 * opt.BALL_RADIUS) # 中场位子
-            and not (
-                    abs(me.x) < (50-opt.TANK_LENGTH) 
-                    and abs(me.x - opt.MY_DOOR_LEFT.x) < 50 
-                    and abs(me.y - 0) < 22
-                ) 
-    ) : # 守门位子，中场位子, 禁区除外
-        vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
+    enemytank, enemytank_dist = get_closest_enemy_tank(me)
+    ball_dist = get_distance_to_pos(me, ball, 0)
+    if get_distance_to_pos(me, my_position, 0) <= ((opt.DOOR_WIDTH - opt.TANK_LENGTH) / 2): # 守门位子
+        None
+    else :
+        if (( abs(me.x) < (50-opt.TANK_LENGTH) and abs(me.x - opt.MY_DOOR_LEFT.x) < 50 and abs(me.y - 0) < 22 ) # 禁区
+           or (get_distance_to_pos(me, center_position, 0) < (10 * opt.BALL_RADIUS)) # 中场位子
+        ) : 
+            if (enemytank_dist > 20) or (ball_dist > 20) : # 没有敌人，或没有球。
+                vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
+        else :
+            vs, hs = get_vshs_response_to_stuck(vs, hs, me, tankname)
 
     return vs, hs
 

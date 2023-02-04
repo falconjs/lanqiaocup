@@ -33,6 +33,6 @@ dependencies:
   # - openpyxl
   # - bioconda::bioinfokit
   # - h2oai::h2o
-  # - pip:
-  #   - pycausalimpact
-  #   - mingus
+  - pip:
+    # - pycausalimpact
+    - mingus
